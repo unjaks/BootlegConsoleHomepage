@@ -9,6 +9,7 @@ body {
     background: #000000;
     font-family: 'VT323', monospace;
     flex-direction: column;
+    overflow: hidden;
 }
 
 #quote-container {
