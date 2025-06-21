@@ -1,0 +1,101 @@
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+body {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: #000000;
+    font-family: 'VT323', monospace;
+    flex-direction: column;
+}
+
+#quote-container {
+    max-width: 70%;
+    padding-left: 20px;
+    margin-bottom: 30px;
+}
+
+#quote {
+    font-size: 1.5rem;
+    color: #ffffff;
+    display: inline;
+    white-space: pre-wrap;
+}
+
+.char {
+    opacity: 0;
+    display: inline-block;
+    transition: all 0.1s ease-in-out;
+    font-size: 0.1em;
+}
+
+.char.visible {
+    opacity: 1;
+    font-size: 2em;
+}
+
+#author {
+    margin-top: 20px;
+    font-style: italic;
+    opacity: 0;
+    color: #fff;
+    transition: opacity 0.5s ease-in-out;
+}
+
+#author.show {
+    opacity: 0.7;
+}
+
+#console {
+    width: 70%;
+    margin-left: 50%;
+    background: none;
+    padding: 10px;
+    color: #fff;
+    font-family: 'VT323', monospace;
+}
+
+#console-input {
+    display: flex;
+    align-items: center;
+}
+
+#prompt {
+    color: #4CAF50;
+    margin-right: 8px;
+}
+
+#command-input {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-family: 'VT323', monospace;
+    font-size: 1.2em;
+    width: 100%;
+    outline: none;
+}
+
+#output {
+    margin-top: 10px;
+    color: #ccc;
+    font-size: 1.2em;
+    min-height: 20px;
+}
+
+.command {
+    color: #4CAF50;
+}
+
+.error {
+    color: #f44336;
+}
+
+.success {
+    color: #4CAF50;
+}
+
+.info {
+    color: #2196F3;
+}

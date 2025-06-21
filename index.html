@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>KYS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="quote-container">
+        <div id="quote"></div>
+        <div id="author"></div>
+    </div>
+
+    <div id="console">
+        <div id="output"></div>
+        <div id="console-input">
+            <span id="prompt">$</span>
+            <input type="text" id="command-input" autofocus>
+        </div>
+    </div>
+
+    <script>
+        const quotes = [
+            { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+            { text: "Simplicity is the ultimate sophistication.", author: "Leonardo da Vinci" },
+            { text: "Less is more.", author: "Ludwig Mies van der Rohe" },
+            { text: "The present moment is the only moment available to us.", author: "Thich Nhat Hanh" },
+            { text: "Breathe in, breathe out. Move on.", author: "Jimmy Buffett" }
+        ];
+
+        let currentQuote = 0;
+        let isDeleting = false;
+        let aliases = {};
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+
+        function setCookie(name, value, days = 365) {
+            const date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            document.cookie = `${name}=${value};expires=${date.toUTCString()};path=/`;
+        }
+
+        function loadAliases() {
+            const aliasesCookie = getCookie('aliases');
+            if (aliasesCookie) {
+                try {
+                    aliases = JSON.parse(aliasesCookie);
+                } catch (e) {
+                    console.error('Error parsing aliases cookie:', e);
+                }
+            }
+        }
+
+        function saveAliases() {
+            setCookie('aliases', JSON.stringify(aliases));
+        }
+
+        function getRandomSpeed(base, variance) {
+            return base + (Math.random() * variance * 2 - variance);
+        }
+
+        function typeWriter() {
+            const quoteElement = document.getElementById('quote');
+            const authorElement = document.getElementById('author');
+            const fullText = quotes[currentQuote].text;
+
+            if (isDeleting) {
+                const chars = quoteElement.querySelectorAll('.char');
+                if (chars.length > 0) {
+                    chars[chars.length - 1].classList.remove('visible');
+                    setTimeout(() => {
+                        chars[chars.length - 1].remove();
+                        typeWriter();
+                    }, getRandomSpeed(30, 15));
+                } else {
+                    isDeleting = false;
+                    authorElement.classList.remove('show');
+                    setTimeout(() => {
+                        currentQuote = (currentQuote + 1) % quotes.length;
+                        typeWriter();
+                    }, 500);
+                }
+            } else {
+                const currentLength = quoteElement.querySelectorAll('.char').length;
+                if (currentLength < fullText.length) {
+                    const char = document.createElement('span');
+                    char.className = 'char';
+                    char.textContent = fullText[currentLength];
+                    quoteElement.appendChild(char);
+                    void char.offsetWidth;
+                    char.classList.add('visible');
+                    setTimeout(typeWriter, getRandomSpeed(50, 25));
+                } else {
+                    isDeleting = true;
+                    authorElement.textContent = `— ${quotes[currentQuote].author}`;
+                    void authorElement.offsetWidth;
+                    authorElement.classList.add('show');
+                    setTimeout(typeWriter, 2000);
+                }
+            }
+        }
+
+        const commandInput = document.getElementById('command-input');
+        const outputElement = document.getElementById('output');
+
+        function printOutput(text, className = '') {
+            const line = document.createElement('div');
+            if (className) line.className = className;
+            line.textContent = text;
+            outputElement.appendChild(line);
+            outputElement.scrollTop = outputElement.scrollHeight;
+        }
+
+        function parseCommand(input) {
+            const parts = [];
+            let current = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < input.length; i++) {
+                const char = input[i];
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                    if (!inQuotes && current) {
+                        parts.push(current);
+                        current = '';
+                    }
+                } else if (char === ' ' && !inQuotes) {
+                    if (current) {
+                        parts.push(current);
+                        current = '';
+                    }
+                } else {
+                    current += char;
+                }
+            }
+
+            if (current) parts.push(current);
+            return parts;
+        }
+
+        function executeCommand(cmd, args) {
+            switch (cmd) {
+                case 'help':
+                    printOutput('Available commands:', 'command');
+                    printOutput('help - Show this help message');
+                    printOutput('open <url> - Open a website in new tab');
+                    printOutput('alias add "<command>" <shortcut> - Create an alias');
+                    printOutput('alias list - Show all aliases');
+                    printOutput('alias remove <shortcut> - Remove an alias');
+                    break;
+
+                case 'alias':
+                    if (args.length === 0) {
+                        printOutput('Usage:', 'command');
+                        printOutput('alias add "<command>" <shortcut> - Create an alias');
+                        printOutput('alias list - Show all aliases');
+                        printOutput('alias remove <shortcut> - Remove an alias');
+                        return;
+                    }
+
+                    const subCmd = args[0];
+                    const subArgs = args.slice(1);
+
+                    if (subCmd === 'add' && subArgs.length >= 2) {
+                        const commandParts = subArgs.slice(0, -1);
+                        const command = commandParts.join(' ');
+                        const shortcut = subArgs[subArgs.length - 1];
+                        aliases[shortcut] = command;
+                        printOutput(`Alias created: ${shortcut} -> ${command}`, 'success');
+                        saveAliases();
+                    }
+                    else if (subCmd === 'list') {
+                        if (Object.keys(aliases).length === 0) {
+                            printOutput('No aliases defined', 'command');
+                        } else {
+                            printOutput('Current aliases:', 'command');
+                            for (const [shortcut, command] of Object.entries(aliases)) {
+                                printOutput(`${shortcut} -> ${command}`);
+                            }
+                        }
+                    }
+                    else if (subCmd === 'remove' && subArgs.length === 1) {
+                        const shortcut = subArgs[0];
+                        if (aliases[shortcut]) {
+                            delete aliases[shortcut];
+                            printOutput(`Alias removed: ${shortcut}`, 'success');
+                            saveAliases();
+                        } else {
+                            printOutput(`Alias not found: ${shortcut}`, 'error');
+                        }
+                    }
+                    else {
+                        printOutput('Invalid alias command', 'error');
+                        printOutput('Usage:', 'command');
+                        printOutput('alias add "<command>" <shortcut>');
+                        printOutput('alias list');
+                        printOutput('alias remove <shortcut>');
+                    }
+                    break;
+
+                case 'open':
+                    if (args.length === 0) {
+                        printOutput('Usage: open <url>', 'error');
+                        return;
+                    }
+                    let url = args[0];
+                    if (!url.match(/^https?:\/\//)) {
+                        url = 'https://' + url;
+                    }
+                    printOutput(`Opening: ${url}`, 'info');
+                    window.open(url, '_blank');
+                    break;
+
+                case '':
+                    break;
+
+                default:
+                    printOutput(`Command not found: ${cmd}`, 'error');
+                    printOutput('Type "help" for available commands', 'command');
+            }
+        }
+
+        function processCommand(command) {
+            if (!command.trim()) return;
+
+            const parts = parseCommand(command);
+            if (parts.length === 0) return;
+
+            let cmd = parts[0].toLowerCase();
+            let args = parts.slice(1);
+
+            if (aliases[cmd]) {
+                const fullCommand = aliases[cmd] + (args.length ? ' ' + args.join(' ') : '');
+                printOutput(`[alias: ${cmd} -> ${aliases[cmd]}]`, 'info');
+                processCommand(fullCommand);
+                return;
+            }
+
+            executeCommand(cmd, args);
+        }
+
+        commandInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const command = commandInput.value.trim();
+                if (command) {
+                    printOutput(`$ ${command}`, 'command');
+                    processCommand(command);
+                    commandInput.value = '';
+                }
+            }
+        });
+
+        loadAliases();
+        typeWriter();
+        printOutput('Type "help" for available commands', 'command');
+        printOutput('Try "open example.com" to open a website', 'info');
+    </script>
+</body>
+
+</html>
